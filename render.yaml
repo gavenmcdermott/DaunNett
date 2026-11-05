@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: forkinglawyer-news
+    runtime: python
+    rootDir: Backend
+    buildCommand: python -m compileall groq_news_server.py
+    startCommand: python groq_news_server.py
+    healthCheckPath: /health
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
