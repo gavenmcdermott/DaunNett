@@ -91,7 +91,7 @@ class NewsPayloadTests(unittest.TestCase):
         self.assertEqual(
             request_payload["response_format"], {"type": "json_object"}
         )
-        self.assertEqual(request_payload["max_tokens"], 500)
+        self.assertEqual(request_payload["max_tokens"], 1200)
         messages = request_payload["messages"]
         self.assertIn("JSON object", messages[0]["content"])
         self.assertIn("headline", messages[0]["content"])
@@ -106,11 +106,12 @@ class NewsPayloadTests(unittest.TestCase):
         )
         request_payload = json.loads(request.data)
         self.assertNotIn("response_format", request_payload)
-        self.assertIn("exactly one valid JSON object",
+        self.assertIn("exactly two string fields",
             request_payload["messages"][0]["content"])
-        self.assertIn("in natural Russian",
+        self.assertIn("Russian TV news report",
             request_payload["messages"][0]["content"])
         self.assertEqual(request_payload["temperature"], 0.2)
+        self.assertEqual(request_payload["max_tokens"], 1200)
 
     def test_retries_json_validation_failure_without_json_mode(self):
         invalid_json_error = HTTPError(
@@ -152,7 +153,11 @@ class NewsPayloadTests(unittest.TestCase):
         )
         self.assertEqual(urlopen.call_count, 2)
         retry_request = urlopen.call_args_list[1].args[0]
-        self.assertNotIn("response_format", json.loads(retry_request.data))
+        retry_payload = json.loads(retry_request.data)
+        self.assertNotIn("response_format", retry_payload)
+        self.assertIn("exactly two string fields",
+            retry_payload["messages"][0]["content"])
+        self.assertEqual(retry_payload["max_tokens"], 1200)
 
     def test_release_parser_accepts_json_fenced_text_from_retry(self):
         release = parse_generated_release({
@@ -214,7 +219,12 @@ class NewsPayloadTests(unittest.TestCase):
         self.assertEqual(release["headline"], "A headline")
         self.assertEqual(urlopen.call_count, 2)
         retry_request = urlopen.call_args_list[1].args[0]
-        self.assertNotIn("response_format", json.loads(retry_request.data))
+        retry_payload = json.loads(retry_request.data)
+        self.assertEqual(
+            retry_payload["response_format"], {"type": "json_object"}
+        )
+        self.assertIn("exactly two string fields",
+            retry_payload["messages"][0]["content"])
 
 if __name__ == "__main__":
     unittest.main()
